@@ -79,3 +79,7 @@ jobs:
         service: next-uk-post-codes-ecs-service
         cluster: next-uk-post-codes-cluster
         wait-for-service-stability: true
+        codedeploy-application: training-${{ github.event.inputs.candidate }}
+        codedeploy-deployment-group: default
+
+        
