@@ -22,13 +22,17 @@
 # 4. Store an IAM user access key in GitHub Actions secrets named `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`.
 #    See the documentation for each action used below for the recommended IAM policies for this IAM user,
 #    and best practices on handling the access key credentials.
-
+name: Deploy to Amazon ECR
+# on:
+#  push:
+#    branches: 
+#      - master
 on:
-  push:
-    branches: 
-      - master
-
-name: Deploy to Amazon ECS
+  workflow_dispatch:
+    inputs:
+      candidate:
+        descriptions: 'Your git username'
+        required: true
 
 jobs:
   deploy:
@@ -38,6 +42,11 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v2
+
+    - name: Create an image tag based on the commit sha
+      id: image_tag
+      run: |
+        echo "::set-output name=sha::$(echo ${GITHUB_SHA} | cut -c1-7)"
 
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v1
@@ -52,9 +61,9 @@ jobs:
 
     - name: Build, tag, and push image to Amazon ECR
       id: build-image
-      env:
+      env:  
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-        ECR_REPOSITORY: next-uk-post-codes
+        ECR_REPOSITORY: ${{ github.event.inputs.candidate }}
         IMAGE_TAG: latest
       run: |
         # Build a docker container and
@@ -76,10 +85,8 @@ jobs:
       uses: aws-actions/amazon-ecs-deploy-task-definition@v1
       with:
         task-definition: ${{ steps.task-def.outputs.task-definition }}
-        service: next-uk-post-codes-ecs-service
-        cluster: next-uk-post-codes-cluster
+        service: ${{ github.event.inputs.candidate }}
+        cluster: ${{ github.event.inputs.candidate }}
         wait-for-service-stability: true
-        codedeploy-application: next-uk-post-codes
+        codedeploy-application: ${{ github.event.inputs.candidate }}
         codedeploy-deployment-group: default
-
-        
